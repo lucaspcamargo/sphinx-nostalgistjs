@@ -5,7 +5,7 @@ Sphinx extension for embedding RetroArch in HTML documents, using [NostalgistJS]
 <!--ENGBR_SECTION
 ## Demo
 
-Click to start. Use Z, X and the arrow keys.
+Click to start. Use the Z key to jump, and the Enter key to start.
 This is emulating "flappybird.nes" on the "FCEUmm" core in RetroArch.
 
 ```{nostalgistjs}
@@ -78,7 +78,7 @@ This injects preamble JS code to setup input device types and mappings, specific
 It can get a bit ugly, though:
 
     ```{nostalgistjs}
-        :rom_url: "https://jenkins.camargo.eng.br/job/dweep-gen/lastSuccessfulBuild/artifact/ci-build/out/Dweep_Genesis_(latest).bin"
+        :rom_url: "https://example.site/rom.bin"
         :core_id: genesis_plus_gx
         {
             "nostalgist_options": {
@@ -87,7 +87,7 @@ It can get a bit ugly, though:
                     "input_auto_mouse_grab": true
                 }
             },
-            "before_launch_preamble": "let efs = nostalgist.getEmscriptenFS(); efs.mkdirTree('/home/web_user/retroarch/userdata/config/remaps/Genesis Plus GX'); efs.writeFile('/home/web_user/retroarch/userdata/config/remaps/Genesis Plus GX/Dweep_Genesis_(latest).rmp',  'input_libretro_device_p1 = \"1\"\\ninput_libretro_device_p2 = \"2\"');"
+            "before_launch_preamble": "let efs = nostalgist.getEmscriptenFS(); efs.mkdirTree('/home/web_user/retroarch/userdata/config/remaps/Genesis Plus GX'); efs.writeFile('/home/web_user/retroarch/userdata/config/remaps/Genesis Plus GX/rom.rmp',  'input_libretro_device_p1 = \"1\"\\ninput_libretro_device_p2 = \"2\"');"
         }
     ```
 
