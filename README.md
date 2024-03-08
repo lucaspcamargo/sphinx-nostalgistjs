@@ -1,6 +1,7 @@
 # sphinx-nostalgistjs
 
 Sphinx extension for embedding RetroArch in HTML documents, using [NostalgistJS](https://nostalgist.js.org/).
+Styling and layout depend on Bootstrap v5, not included.
 
 <!--ENGBR_SECTION
 ## Demo

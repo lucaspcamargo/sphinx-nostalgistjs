@@ -7,6 +7,7 @@ from sphinx.util.docutils import SphinxDirective
 
 import json
 import logging
+import random
 
 # Thanks to sphinxnotes-isso for a working example on how to do something similar to this
 
@@ -29,6 +30,10 @@ class NostalgistJSNode(nodes.General, nodes.Element):
 
     @staticmethod
     def visit(self, node):
+        id = node['unique_id']
+        canvas_style = "aspect-ratio: 4 / 3; width: 100%; background: black; radius: 10px"
+        txt_btn_start = "Start"
+
         options_extender = ""
         if 'extra_nostalgist_options' in node:
             options_extender = f"""
@@ -38,44 +43,127 @@ class NostalgistJSNode(nodes.General, nodes.Element):
                 Object.assign(opts, extra_opts);
             """
 
+        attribution = """
+            <p><em>
+                Powered by <a class="reference external" href="https://github.com/lucaspcamargo/sphinx-nostalgistjs">sphinx_nostalgistjs</a> and 
+                <a class="reference external" href="https://nostalgist.js.org/">Nostalgist.js</a>.
+            </em></p>
+            """ if not node.get('omit_attribution', False) else ""
+
         self.body.append(f"""
-                         <canvas id="nostalgistjs_canvas" style="aspect-ratio: 4 / 3; width: 100%; background: black; radius: 10px;">
-                            <p>This browser does not seem to support the canvas element.</p>
-                         </canvas> 
-                         <script>
-                            BLACKLISTED_KEY_CONTROL_ELEMENTS.add("CANVAS"); // suppress docutils.js arrow keys navigation
-                            let opts = {json.dumps(node['base_opts'])};
-                            {options_extender}
-                            let functions = {{
-                                beforeLaunch: function (nostalgist) {{
-                                    {node.get('before_launch_preamble', '')}
-                                    // TODO begin loading spinner 
-                                    {node.get('before_launch_epilogue', '')}
-                                }},
-                                onLaunch: function (nostalgist) {{
-                                    {node.get('on_launch_preamble', '')}
-                                    // TODO end loading spinner 
-                                    {node.get('on_launch_epilogue', '')}
-                                }},
-                            }};
-                            Object.assign(opts, functions);
-                            Nostalgist.launch(opts).then(function () {{
-                                console.log("NostalgistJS launch complete.");
+                        <section id="sph_njs_container_{id}" class="text-center" style="display: none">
+                            <div class="btn-group p-1" role="group" aria-label="Emulator controls">
+                                <button id="sph_njs_btn_stop_{id}" type="button" class="btn btn-danger">
+                                    <i class="fa fa-stop"></i> Stop
+                                </button>
+                                <button id="sph_njs_btn_reset_{id}" type="button" class="btn btn-warning">
+                                    <i class="fa fa-arrow-rotate-left"></i> Reset
+                                </button>
+                                <button id="sph_njs_btn_fullscreen_{id}" type="button" class="btn btn-secondary">
+                                    <i class="fa fa-expand"></i> Fullscreen
+                                </button>
+                            </div>
+                            <div id="sph_njs_canvas_wrap_{id}" class="text-left position-relative">
+                                <canvas class="sph_njs_canvas_{id}" style="{canvas_style}">
+                                    <p>This browser does not seem to support the canvas element.</p>
+                                </canvas>
+                                <div id="sph_njs_overlay_{id}" class="position-absolute top-0 start-0 w-100 h-100 user-select-none pe-none" style="background: #00000080">
+                                    <div class="position-absolute top-50 start-50 translate-middle">
+                                        <div class="spinner-border text-light" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {attribution}
+                        </section>
+
+                        <button id="sph_njs_btn_start_{id}" type="button" class="btn btn-success">
+                            <i class="fa fa-play"></i> {txt_btn_start}
+                        </button>
+
+                        <script>
+                            function sph_njs_launch() {{
+                                BLACKLISTED_KEY_CONTROL_ELEMENTS.add("CANVAS"); // suppress docutils.js arrow keys navigation
+                                let opts = {json.dumps(node['base_opts'])};
+                                {options_extender}
+                                let functions = {{
+                                    beforeLaunch: function (nostalgist) {{
+                                        {node.get('before_launch_preamble', '')}
+                                        document.querySelector("#sph_njs_container_{id}").nostalgist = nostalgist;
+                                        {node.get('before_launch_epilogue', '')}
+                                    }},
+                                    onLaunch: function (nostalgist) {{
+                                        {node.get('on_launch_preamble', '')}
+                                        let overlay = document.querySelector("#sph_njs_overlay_{id}");
+                                        overlay.style.visibility = "hidden";
+                                        {node.get('on_launch_epilogue', '')}
+                                    }},
+                                }};
+                                Object.assign(opts, functions);
+
+                                document.querySelector("#sph_njs_container_{id}").style.display = "";
+                                document.querySelector("#sph_njs_btn_start_{id}").style.display = "none";
+
+                                Nostalgist.launch(opts).then(function (nostalgist) {{
+                                    // save original canvas size for later restore (eg. left fullscreen)
+                                    let canvas = document.querySelector(".sph_njs_canvas_{id}");
+                                    canvas.originalWidth = canvas.width;
+                                    canvas.originalHeight =  canvas.height;
+                                    canvas.focus();
+                                    console.log("NostalgistJS launch complete, dimensions are "+canvas.width+"x"+canvas.height);
+                                }});
+                            }}
+
+                            function sph_njs_stop() {{
+                                document.querySelector("#sph_njs_container_{id}").nostalgist.exit({{ removeCanvas: false }});
+                                document.querySelector("#sph_njs_container_{id}").style.display = "none";
+                                document.querySelector("#sph_njs_btn_start_{id}").style.display = "";
+                                document.querySelector("#sph_njs_overlay_{id}").style.visibility = "visible";
+                                console.log("NostalgistJS exited.");
+                            }}
+
+                            function sph_njs_reset() {{
+                                document.querySelector("#sph_njs_container_{id}").nostalgist.restart();
+                                
+                            }}
+
+                            function sph_njs_fullscreen() {{
+                                let elem = document.querySelector(".sph_njs_canvas_{id}");
+                                if (!document.fullscreenElement) {{
+                                    elem.requestFullscreen().then(() => {{
+                                        console.log('Fullscreen mode started.');
+                                    }}, (err) => {{
+                                        console.log(`Error attempting to enable fullscreen mode: ${{err.message}} (${{err.name}})`);
+                                    }});
+                                }} else {{
+                                    document.exitFullscreen();
+                                }}
+                            }}
+
+                            document.querySelector("#sph_njs_btn_start_{id}").onclick = sph_njs_launch;
+                            document.querySelector("#sph_njs_btn_stop_{id}").onclick = sph_njs_stop;
+                            document.querySelector("#sph_njs_btn_reset_{id}").onclick = sph_njs_reset;
+                            document.querySelector("#sph_njs_btn_fullscreen_{id}").onclick = sph_njs_fullscreen;
+                            document.querySelector(".sph_njs_canvas_{id}").addEventListener("fullscreenchange", (event) => {{
+                                if(!document.fullscreenElement)
+                                {{
+                                    // When leaving fullscreen, restore original canvas size
+                                    let nostalgist = document.querySelector("#sph_njs_container_{id}").nostalgist;
+                                    let canvas = document.querySelector(".sph_njs_canvas_{id}");
+                                    nostalgist.resize({{ 
+                                        width: canvas.originalWidth,
+                                        height: canvas.originalHeight
+                                    }});
+                                    console.log("Left fullscreen, resized to "+canvas.originalWidth+"x"+canvas.originalHeight);
+                                }}
+                                else
+                                    console.log("Entered fullscreen, resizing happens automatically.");
                             }});
-                         </script>
-                         """)
+                        </script>
+
+                        """)
         
-        # TODO use button to show canvas and launch
-
-        # TODO add bootstrap controls
-
-        if not node.get('omit_attribution', False):
-            self.body.append("""
-                <p><em>
-                    Powered by <a class="reference external" href="https://github.com/lucaspcamargo/sphinx-nostalgistjs">sphinx_nostalgistjs</a> and 
-                    <a class="reference external" href="https://nostalgist.js.org/">Nostalgist.js</a>.
-                </em></p>
-                         """)
 
     @staticmethod
     def depart(self, _):
@@ -94,25 +182,26 @@ class NostalgistJSDirective(SphinxDirective):
     def run(self):
         content = '\n'.join(self.content or [])
         content = content.strip()
+        print("CONTENT IS "+repr(content))
         conf = json.loads(content) if content else {}
 
-        # TODO add random id to node, use in canvas id and in 'element' below
-
+        unique_id = ''.join(random.choice('0123456789ABCDEF') for _ in range(8))
         opts = {
             'rom': self.options.get("rom_url"),
             'core': self.options.get("core_id"),
-            'element': '#nostalgistjs_canvas',
+            'element': '.sph_njs_canvas_'+unique_id,  # we use class because the js lib changes the element's id for some cursed reason
             'respondToGlobalEvents': False,
         }
         opts.update(conf.get('nostalgist_options', {}))
 
         node = NostalgistJSNode()
+        node['unique_id'] = unique_id
         node['base_opts'] = opts
         node['omit_attribution'] = conf.get('omit_attribution', False)
         node['extra_nostalgist_options'] = conf.get('extra_nostalgist_options', '')
         node['before_launch_preamble'] = conf.get('before_launch_preamble', '')
-        node['on_launch_preamble'] = conf.get('on_launch_preamble', '')
         node['before_launch_epilogue'] = conf.get('before_launch_epilogue', '')
+        node['on_launch_preamble'] = conf.get('on_launch_preamble', '')
         node['on_launch_epilogue'] = conf.get('on_launch_epilogue', '')
 
         return [node]
