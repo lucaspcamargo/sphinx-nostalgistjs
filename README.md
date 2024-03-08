@@ -1,4 +1,5 @@
-# sphinx_nostalgistjs
+# sphinx-nostalgistjs
+
 Sphinx extension for embedding RetroArch in HTML documents, using [NostalgistJS](https://nostalgist.js.org/).
 
 ## Quick Usage
