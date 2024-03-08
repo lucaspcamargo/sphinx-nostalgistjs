@@ -110,6 +110,7 @@ class NostalgistJSNode(nodes.General, nodes.Element):
                                     let canvas = document.querySelector(".sph_njs_canvas_{id}");
                                     canvas.originalWidth = canvas.width;
                                     canvas.originalHeight =  canvas.height;
+                                    document.getElementById("sph_njs_container_{id}").scrollIntoView();
                                     canvas.focus();
                                     console.log("NostalgistJS launch complete, dimensions are "+canvas.width+"x"+canvas.height);
                                 }});
