@@ -28,33 +28,53 @@ def js_bool( val ):
 class NostalgistJSNode(nodes.General, nodes.Element):
 
     @staticmethod
-    def visit(self, node):        
+    def visit(self, node):
+        options_extender = ""
+        if 'extra_nostalgist_options' in node:
+            options_extender = f"""
+                let extra_opts = {{
+                    {node['extra_nostalgist_options']}
+                }};
+                Object.assign(opts, extra_opts);
+            """
+
         self.body.append(f"""
                          <canvas id="nostalgistjs_canvas" style="aspect-ratio: 4 / 3; width: 100%; background: black; radius: 10px;">
                             <p>This browser does not seem to support the canvas element.</p>
                          </canvas> 
                          <script>
-                            BLACKLISTED_KEY_CONTROL_ELEMENTS.add("CANVAS");
-                            // TODO use bootstrap button to show canvas and launch
-                            Nostalgist.launch({{ 
-                                rom: '{node['rom_url']}', 
-                                core: '{node['core_id']}',
-                                element: '#nostalgistjs_canvas',
-                                respondToGlobalEvents: false,
-                                retroarchConfig: {json.dumps(node['rc_config'] or {})},
-                                retroarchCoreConfig: {json.dumps(node['rcc_config'] or {})},
+                            BLACKLISTED_KEY_CONTROL_ELEMENTS.add("CANVAS"); // suppress docutils.js arrow keys navigation
+                            let opts = {json.dumps(node['base_opts'])};
+                            {options_extender}
+                            let functions = {{
                                 beforeLaunch: function (nostalgist) {{
-                                    // TODO make this generic, optional
-                                    window.efs = nostalgist.getEmscriptenFS();
-                                    window.efs.mkdirTree('/home/web_user/retroarch/userdata/config/remaps/Genesis Plus GX');
-                                    window.efs.writeFile('/home/web_user/retroarch/userdata/config/remaps/Genesis Plus GX/Dweep_Genesis_(latest).rmp', 
-                                                         'input_libretro_device_p1 = "1"\\ninput_libretro_device_p2 = "2"');
+                                    {node.get('before_launch_preamble', '')}
+                                    // TODO begin loading spinner 
+                                    {node.get('before_launch_epilogue', '')}
                                 }},
                                 onLaunch: function (nostalgist) {{
-                                    
+                                    {node.get('on_launch_preamble', '')}
+                                    // TODO end loading spinner 
+                                    {node.get('on_launch_epilogue', '')}
                                 }},
-                            }}).then(function () {{console.log("NostalgistJS launch complete.")}});
+                            }};
+                            Object.assign(opts, functions);
+                            Nostalgist.launch(opts).then(function () {{
+                                console.log("NostalgistJS launch complete.");
+                            }});
                          </script>
+                         """)
+        
+        # TODO use button to show canvas and launch
+
+        # TODO add bootstrap controls
+
+        if not node.get('omit_attribution', False):
+            self.body.append("""
+                <p><em>
+                    Powered by <a class="reference external" href="https://github.com/lucaspcamargo/sphinx-nostalgistjs">sphinx_nostalgistjs</a> and 
+                    <a class="reference external" href="https://nostalgist.js.org/">Nostalgist.js</a>.
+                </em></p>
                          """)
 
     @staticmethod
@@ -72,14 +92,24 @@ class NostalgistJSDirective(SphinxDirective):
     has_content = True
 
     def run(self):
-        node = NostalgistJSNode()
-        node['rom_url'] = self.options.get("rom_url")
-        node['core_id'] = self.options.get("core_id")
-
         content = '\n'.join(self.content or [])
         conf = json.loads(content) if content else {}
-        node['rc_config'] = conf.get('retroarchConfig', {})
-        node['rcc_config'] = conf.get('retroarchCoreConfig', {})
+
+        opts = {
+            'rom': self.options.get("rom_url"),
+            'core': self.options.get("core_id"),
+            'element': '#nostalgistjs_canvas',
+            'respondToGlobalEvents': False,
+        }
+        opts.update(conf.get('nostalgist_options', {}))
+
+        node = NostalgistJSNode()
+        node['base_opts'] = opts;
+        node['extra_nostalgist_options'] = conf.get('extra_nostalgist_options', '');
+        node['before_launch_preamble'] = conf.get('before_launch_preamble', '');
+        node['on_launch_preamble'] = conf.get('on_launch_preamble', '');
+        node['before_launch_epilogue'] = conf.get('before_launch_epilogue', '');
+        node['on_launch_epilogue'] = conf.get('on_launch_epilogue', '');
 
         return [node]
 
