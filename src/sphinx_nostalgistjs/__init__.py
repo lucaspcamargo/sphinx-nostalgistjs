@@ -93,7 +93,10 @@ class NostalgistJSDirective(SphinxDirective):
 
     def run(self):
         content = '\n'.join(self.content or [])
+        content = content.strip()
         conf = json.loads(content) if content else {}
+
+        # TODO add random id to node, use in canvas id and in 'element' below
 
         opts = {
             'rom': self.options.get("rom_url"),
