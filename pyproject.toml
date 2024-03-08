@@ -27,7 +27,7 @@ dynamic = ["version"]
 
 
 [project.urls]
-homepage = "https://camargo.eng.br/"
+homepage = "https://camargo.eng.br/projects/sphinx-nostalgistjs/README.html"
 repository = "https://github.com/lucaspcamargo/sphinx-nostalgistjs"
 tracker = "https://github.com/lucaspcamargo/sphinx-nostalgistjs/issues"
 
