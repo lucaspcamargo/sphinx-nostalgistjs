@@ -1,0 +1,42 @@
+[project]
+name = "sphinx-nostalgistjs"
+description = "Sphinx extension for embeding Isso comments in documents"
+readme = "README.rst"
+license = { file = "GPLv3" }
+authors = [ { name = "Lucas Pires Camargo" } ]
+maintainers = [ { name = "Lucas Pires Camargo" } ]
+keywords = ["documentation", "sphinx", "extension", "nostalgistjs", "emulation", "games"]
+classifiers = [
+    "Environment :: Plugins",
+    "Framework :: Sphinx",
+    "Framework :: Sphinx :: Extension",
+    "License :: OSI Approved :: GPLv3 License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Topic :: Documentation",
+    "Topic :: Documentation :: Sphinx",
+]
+
+requires-python = ">=3.10"
+dependencies = [
+    "Sphinx >= 4",
+]
+
+dynamic = ["version"]
+
+
+[project.urls]
+homepage = "https://camargo.eng.br/"
+repository = "https://github.com/lucaspcamargo/sphinx-nostalgistjs"
+tracker = "https://github.com/lucaspcamargo/sphinx-nostalgistjs/issues"
+
+[build-system]
+requires = ["setuptools>=46.1.0", "setuptools_scm[toml]>=5", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+version_scheme = "no-guess-dev"
+
+[tool.setuptools.packages.find]
+where = ["src"]
