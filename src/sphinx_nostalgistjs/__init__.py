@@ -107,12 +107,13 @@ class NostalgistJSDirective(SphinxDirective):
         opts.update(conf.get('nostalgist_options', {}))
 
         node = NostalgistJSNode()
-        node['base_opts'] = opts;
-        node['extra_nostalgist_options'] = conf.get('extra_nostalgist_options', '');
-        node['before_launch_preamble'] = conf.get('before_launch_preamble', '');
-        node['on_launch_preamble'] = conf.get('on_launch_preamble', '');
-        node['before_launch_epilogue'] = conf.get('before_launch_epilogue', '');
-        node['on_launch_epilogue'] = conf.get('on_launch_epilogue', '');
+        node['base_opts'] = opts
+        node['omit_attribution'] = conf.get('omit_attribution', False)
+        node['extra_nostalgist_options'] = conf.get('extra_nostalgist_options', '')
+        node['before_launch_preamble'] = conf.get('before_launch_preamble', '')
+        node['on_launch_preamble'] = conf.get('on_launch_preamble', '')
+        node['before_launch_epilogue'] = conf.get('before_launch_epilogue', '')
+        node['on_launch_epilogue'] = conf.get('on_launch_epilogue', '')
 
         return [node]
 

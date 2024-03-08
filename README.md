@@ -2,6 +2,23 @@
 
 Sphinx extension for embedding RetroArch in HTML documents, using [NostalgistJS](https://nostalgist.js.org/).
 
+<!--ENGBR_SECTION
+## Demo
+
+Click to start. Use Z, X and the arrow keys.
+This is emulating "flappybird.nes" on the "FCEUmm" core in RetroArch.
+
+```{nostalgistjs}
+    :rom_url: "flappybird.nes"
+    :core_id: fceumm
+    {
+        'omit_attribution': true
+    }
+```
+ENGBR_SECTION-->
+
+
+
 ## Basic Usage
 
 Add this extension to your Sphinx `conf.py`, like so:
