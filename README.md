@@ -12,7 +12,7 @@ This is emulating "flappybird.nes" on the "FCEUmm" core in RetroArch.
     :rom_url: "flappybird.nes"
     :core_id: fceumm
     {
-        'omit_attribution': true
+        "omit_attribution": true
     }
 ```
 ENGBR_SECTION-->
