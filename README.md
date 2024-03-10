@@ -129,19 +129,21 @@ object is merged into the options object used for launching NostalgistJS.
 This can be used to add options that cannot be expressed in JSON, such as callback functions. 
 Defaults to an empty string.
 
-### `before_launch_preamble`
+### Custom code injection
+
+#### `before_launch_preamble`
 
 A piece of JS code to be executed before the emulator starts, and before any UI setup code runs.
 
-### `before_launch_epilogue`
+#### `before_launch_epilogue`
 
 A piece of JS code to be executed before the emulator starts, but after all UI setup code runs.
 
-### `on_launch_preamble`
+#### `on_launch_preamble`
 
 A piece of JS code to be executed after the emulator starts, but before any UI setup code runs.
 
-### `on_launch_epilogue`
+#### `on_launch_epilogue`
 
 A piece of JS code to be executed after the emulator starts, and after all UI setup code runs.
 
