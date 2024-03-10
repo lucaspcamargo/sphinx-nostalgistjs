@@ -47,7 +47,13 @@ nostalgistjs_script_url = "/_static/nostalgist.js"
 
 If the extension was successfully installed, you can include an emulator in a document, using the following directive:
 
-
+    For reStructuredText:
+    :::{nostalgistjs}
+        :rom_url: "30yearsofnintendont.bin"
+        :core_id: genesis_plus_gx
+    :::    
+    
+    For Myst: (used throughout this document)
     ```{nostalgistjs}
         :rom_url: "30yearsofnintendont.bin"
         :core_id: genesis_plus_gx
@@ -64,6 +70,12 @@ Please consult the [launch(...) API](https://nostalgist.js.org/apis/launch/) of 
 | NES        | fceumm |
 | SNES       | snes9x |
 | GB, GBC, GBA | mgba |
+
+
+```{warning}
+Some configuration options allow a document's author to inject arbitrary JavaScript into the page.
+This plugin is not appropriate for environments where this may be a security issue.
+``````
 
 ## Advanced Usage
 
@@ -92,9 +104,46 @@ It can get a bit ugly, though:
         }
     ```
 
-## TODO 
+## Directive options
 
-Create a reference of all possible configuration fields for the directive.
+### `nostalgist_options`
+
+These are the options passed straight to NostalgistJS for configuring the emulator. 
+Consult the [NostalgistJS documentation](https://nostalgist.js.org/apis/launch/) for more info. 
+
+The options `rom` and `core` are filled in from the directive's `rom_url` and `core_id` parameters, and don't need to be specified again. 
+Also, `respondToGlobalEvents` is set to false by default, but this can be overriden.
+
+Note that there's no need to specify the `element` option, this is handled automatically by the plugin.
+Doing so will break the UI controls.
+
+### `omit_attribution`
+
+A boolean. If set to true, this will hide the credits that are rendered at the bottom. Defaults to false.
+
+### `extra_nostalgist_options`
+
+A string. This will be output directly in the JavaScript source, inside an object literal. The resulting 
+object is merged into the options object used for launching NostalgistJS.
+
+This can be used to add options that cannot be expressed in JSON, such as callback functions. 
+Defaults to an empty string.
+
+### `before_launch_preamble`
+
+A piece of JS code to be executed before the emulator starts, and before any UI setup code runs.
+
+### `before_launch_epilogue`
+
+A piece of JS code to be executed before the emulator starts, but after all UI setup code runs.
+
+### `on_launch_preamble`
+
+A piece of JS code to be executed after the emulator starts, but before any UI setup code runs.
+
+### `on_launch_epilogue`
+
+A piece of JS code to be executed after the emulator starts, and after all UI setup code runs.
 
 ## Troubleshooting
 

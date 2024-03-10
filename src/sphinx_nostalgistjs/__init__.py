@@ -89,15 +89,15 @@ class NostalgistJSNode(nodes.General, nodes.Element):
                                 {options_extender}
                                 let functions = {{
                                     beforeLaunch: function (nostalgist) {{
-                                        {node.get('before_launch_preamble', '')}
+                                        {node.get('before_launch_preamble', '')};
                                         document.querySelector("#sph_njs_container_{id}").nostalgist = nostalgist;
-                                        {node.get('before_launch_epilogue', '')}
+                                        {node.get('before_launch_epilogue', '')};
                                     }},
                                     onLaunch: function (nostalgist) {{
-                                        {node.get('on_launch_preamble', '')}
+                                        {node.get('on_launch_preamble', '')};
                                         let overlay = document.querySelector("#sph_njs_overlay_{id}");
                                         overlay.style.visibility = "hidden";
-                                        {node.get('on_launch_epilogue', '')}
+                                        {node.get('on_launch_epilogue', '')};
                                     }},
                                 }};
                                 Object.assign(opts, functions);
