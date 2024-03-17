@@ -3,6 +3,8 @@
 Sphinx extension for embedding RetroArch in HTML documents, using [NostalgistJS](https://nostalgist.js.org/).
 Styling and layout depend on Bootstrap v5, not included.
 
+This package is released on [pypi](https://pypi.org/project/sphinx-nostalgistjs/).
+
 <!--ENGBR_SECTION
 ## Demo
 
