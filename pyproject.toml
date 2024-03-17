@@ -1,7 +1,7 @@
 [project]
 name = "sphinx-nostalgistjs"
 description = "Sphinx extension for embeding Isso comments in documents"
-readme = "README.rst"
+readme = "README.md"
 license = { file = "GPLv3" }
 authors = [ { name = "Lucas Pires Camargo" } ]
 maintainers = [ { name = "Lucas Pires Camargo" } ]
