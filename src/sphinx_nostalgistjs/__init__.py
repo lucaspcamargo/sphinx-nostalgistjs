@@ -74,6 +74,14 @@ class NostalgistJSNode(nodes.General, nodes.Element):
                                         </div>
                                     </div>
                                 </div>
+                                <style> 
+                                    canvas.sph_njs_canvas_{id}:focus {{  
+                                        box-shadow: 0px 0px 0px 3px var(--pst-color-primary, blue);
+                                    }} 
+                                    canvas.sph_njs_canvas_{id} {{  
+                                        transition: box-shadow .3s ease-in;
+                                    }} 
+                                </style>
                             </div>
                             {attribution}
                         </section>
