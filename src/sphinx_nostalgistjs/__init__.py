@@ -242,7 +242,7 @@ def on_html_page_context(app:Sphinx, pagename:str, templatename:str, context,
 
 def setup(app):
     for cfg in CONFIG_ITEMS:
-        app.add_config_value(cfg, None, {})
+        app.add_config_value(cfg, None, '')
     app.add_node(NostalgistJSNode, html=(NostalgistJSNode.visit, NostalgistJSNode.depart))
     app.add_directive('nostalgistjs', NostalgistJSDirective)
     app.connect('html-page-context', on_html_page_context)
