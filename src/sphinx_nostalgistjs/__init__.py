@@ -240,10 +240,19 @@ def on_html_page_context(app:Sphinx, pagename:str, templatename:str, context,
         app.add_js_file(js_url, **kwargs)
         logger.warning("Using NostalgistJS from "+js_url)
 
+def UnsupportedVisit(self, node):
+    node.replace_self(nodes.Text("The emulator is unsupported on this format. Please visit the HTML version for full functionality."))
+
+def UnsupportedDepart(self, node):
+    pass
+
 def setup(app):
     for cfg in CONFIG_ITEMS:
         app.add_config_value(cfg, None, '')
-    app.add_node(NostalgistJSNode, html=(NostalgistJSNode.visit, NostalgistJSNode.depart))
+    app.add_node(NostalgistJSNode, html=(NostalgistJSNode.visit, NostalgistJSNode.depart),
+                                   text=(UnsupportedVisit, UnsupportedDepart),
+                                   latex=(UnsupportedVisit, UnsupportedDepart),
+                                   gemini=(UnsupportedVisit, UnsupportedDepart))
     app.add_directive('nostalgistjs', NostalgistJSDirective)
     app.connect('html-page-context', on_html_page_context)
 
