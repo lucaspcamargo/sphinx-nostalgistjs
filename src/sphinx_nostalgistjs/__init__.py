@@ -2,14 +2,11 @@ from docutils import nodes
 from docutils.parsers.rst import directives
 
 from sphinx.application import Sphinx
-from sphinx.locale import _
 from sphinx.util.docutils import SphinxDirective
 
 import json
 import logging
 import random
-
-# Thanks to sphinxnotes-isso for a working example on how to do something similar to this
 
 __title__= 'sphinx-nostalgistjs'
 __license__ = 'GPLv3',
@@ -23,156 +20,139 @@ CONFIG_ITEMS = ['nostalgistjs_script_url']
 
 logger = logging.getLogger(__name__)
 
-def js_bool( val ):
-    return "true" if bool(val) else "false"
 
 class NostalgistJSNode(nodes.General, nodes.Element):
 
     @staticmethod
     def visit(self, node):
-        id = node['unique_id']
-        canvas_style = "aspect-ratio: 4 / 3; width: 100%; background: black; radius: 10px"
-        txt_btn_start = "Start"
+        uid           = node['unique_id']
+        aspect_ratio  = node.get('aspect_ratio', '4/3')
+        caption       = node.get('caption', '')
+        omit_attr     = node.get('omit_attribution', False)
 
         options_extender = ""
-        if 'extra_nostalgist_options' in node:
+        if node.get('extra_nostalgist_options'):
             options_extender = f"""
-                let extra_opts = {{
-                    {node['extra_nostalgist_options']}
-                }};
-                Object.assign(opts, extra_opts);
-            """
+    var extra = {{ {node['extra_nostalgist_options']} }};
+    Object.assign(opts, extra);"""
 
-        attribution = """
-            <p><em>
-                Powered by <a class="reference external" href="https://github.com/lucaspcamargo/sphinx-nostalgistjs">sphinx_nostalgistjs</a> and 
-                <a class="reference external" href="https://nostalgist.js.org/">Nostalgist.js</a>.
-            </em></p>
-            """ if not node.get('omit_attribution', False) else ""
+        if caption:
+            caption_html = (
+                f'<div class="px-3 py-1 border-top text-body-secondary small">'
+                f'{caption}</div>'
+            )
+        elif not omit_attr:
+            caption_html = (
+                f'<div class="px-3 py-1 border-top text-body-secondary small">'
+                f'Powered by <a href="https://github.com/lucaspcamargo/sphinx-nostalgistjs">'
+                f'sphinx-nostalgistjs</a> and '
+                f'<a href="https://nostalgist.js.org/">Nostalgist.js</a>.</div>'
+            )
+        else:
+            caption_html = ''
 
-        self.body.append(f"""
-                        <section id="sph_njs_container_{id}" class="text-center" style="display: none">
-                            <div class="btn-group p-1" role="group" aria-label="Emulator controls">
-                                <button id="sph_njs_btn_stop_{id}" type="button" class="btn btn-danger">
-                                    <i class="fa fa-stop"></i> Stop
-                                </button>
-                                <button id="sph_njs_btn_reset_{id}" type="button" class="btn btn-warning">
-                                    <i class="fa fa-arrow-rotate-left"></i> Reset
-                                </button>
-                                <button id="sph_njs_btn_fullscreen_{id}" type="button" class="btn btn-secondary">
-                                    <i class="fa fa-expand"></i> Fullscreen
-                                </button>
-                            </div>
-                            <div id="sph_njs_canvas_wrap_{id}" class="text-left position-relative">
-                                <canvas class="sph_njs_canvas_{id}" style="{canvas_style}">
-                                    <p>This browser does not seem to support the canvas element.</p>
-                                </canvas>
-                                <div id="sph_njs_overlay_{id}" class="position-absolute top-0 start-0 w-100 h-100 user-select-none pe-none" style="background: #00000080">
-                                    <div class="position-absolute top-50 start-50 translate-middle">
-                                        <div class="spinner-border text-light" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <style> 
-                                    canvas.sph_njs_canvas_{id}:focus {{  
-                                        box-shadow: 0px 0px 0px 3px var(--pst-color-primary, blue);
-                                    }} 
-                                    canvas.sph_njs_canvas_{id} {{  
-                                        transition: box-shadow .3s ease-in;
-                                    }} 
-                                </style>
-                            </div>
-                            {attribution}
-                        </section>
+        self.body.append(f"""\
+<div class="border my-4" id="nostalgist-wrap-{uid}">
+  <div class="d-flex align-items-center gap-2 p-2 bg-body-tertiary border-bottom">
+    <button class="btn btn-sm btn-outline-secondary" id="nostalgist-toggle-{uid}">&#x25B6; Start</button>
+    <button class="btn btn-sm btn-outline-secondary" id="nostalgist-reset-{uid}" disabled>&#x21BA; Reset</button>
+    <span class="flex-grow-1"></span>
+    <button class="btn btn-sm btn-outline-secondary" id="nostalgist-fs-{uid}" disabled aria-label="Fullscreen">&#x26F6; Fullscreen</button>
+  </div>
+  <div class="position-relative w-100" id="nostalgist-viewport-{uid}"
+       style="aspect-ratio:{aspect_ratio};display:none;background:#000">
+    <canvas class="sph_njs_canvas_{uid}" style="width:100%;height:100%;display:block">
+      <p>This browser does not support the canvas element.</p>
+    </canvas>
+    <div id="nostalgist-overlay-{uid}"
+         class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+         style="background:rgba(0,0,0,.5);pointer-events:none;visibility:hidden">
+      <div class="spinner-border text-light" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+  </div>
+  {caption_html}
+</div>
+<script>
+(function () {{
+  var viewport  = document.getElementById('nostalgist-viewport-{uid}');
+  var btnToggle = document.getElementById('nostalgist-toggle-{uid}');
+  var btnReset  = document.getElementById('nostalgist-reset-{uid}');
+  var btnFs     = document.getElementById('nostalgist-fs-{uid}');
+  var overlay   = document.getElementById('nostalgist-overlay-{uid}');
+  var canvas    = document.querySelector('.sph_njs_canvas_{uid}');
+  var nostalgist = null;
+  var running   = false;
 
-                        <button id="sph_njs_btn_start_{id}" type="button" class="btn btn-success">
-                            <i class="fa fa-play"></i> {txt_btn_start}
-                        </button>
+  function onStart() {{
+    running = true;
+    if (typeof BLACKLISTED_KEY_CONTROL_ELEMENTS !== 'undefined')
+      BLACKLISTED_KEY_CONTROL_ELEMENTS.add('CANVAS');
+    viewport.style.display = 'block';
+    btnToggle.innerHTML = '&#x23F9; Stop';
+    btnReset.disabled = false;
+    btnFs.disabled = false;
+    overlay.style.visibility = 'visible';
 
-                        <script>
-                            function sph_njs_launch() {{
-                                BLACKLISTED_KEY_CONTROL_ELEMENTS.add("CANVAS"); // suppress docutils.js arrow keys navigation
-                                let opts = {json.dumps(node['base_opts'])};
-                                {options_extender}
-                                let functions = {{
-                                    beforeLaunch: function (nostalgist) {{
-                                        {node.get('before_launch_preamble', '')};
-                                        document.querySelector("#sph_njs_container_{id}").nostalgist = nostalgist;
-                                        {node.get('before_launch_epilogue', '')};
-                                    }},
-                                    onLaunch: function (nostalgist) {{
-                                        {node.get('on_launch_preamble', '')};
-                                        let overlay = document.querySelector("#sph_njs_overlay_{id}");
-                                        overlay.style.visibility = "hidden";
-                                        {node.get('on_launch_epilogue', '')};
-                                    }},
-                                }};
-                                Object.assign(opts, functions);
+    var opts = {json.dumps(node['base_opts'])};
+    opts.element = canvas;
+    {options_extender}
+    {node.get('before_launch_preamble', '')}
+    opts.beforeLaunch = function (n) {{
+      nostalgist = n;
+      {node.get('before_launch_epilogue', '')}
+    }};
 
-                                document.querySelector("#sph_njs_container_{id}").style.display = "";
-                                document.querySelector("#sph_njs_btn_start_{id}").style.display = "none";
+    Nostalgist.launch(opts).then(function () {{
+      {node.get('on_launch_preamble', '')}
+      overlay.style.visibility = 'hidden';
+      canvas.originalWidth  = canvas.width;
+      canvas.originalHeight = canvas.height;
+      canvas.focus();
+      viewport.scrollIntoView();
+      {node.get('on_launch_epilogue', '')}
+    }});
+  }}
 
-                                Nostalgist.launch(opts).then(function (nostalgist) {{
-                                    // save original canvas size for later restore (eg. left fullscreen)
-                                    let canvas = document.querySelector(".sph_njs_canvas_{id}");
-                                    canvas.originalWidth = canvas.width;
-                                    canvas.originalHeight =  canvas.height;
-                                    document.getElementById("sph_njs_container_{id}").scrollIntoView();
-                                    canvas.focus();
-                                    console.log("NostalgistJS launch complete, dimensions are "+canvas.width+"x"+canvas.height);
-                                }});
-                            }}
+  function onStop() {{
+    if (!running || !nostalgist) return;
+    nostalgist.exit({{ removeCanvas: false }});
+    nostalgist = null;
+    running = false;
+    viewport.style.display = 'none';
+    overlay.style.visibility = 'visible';
+    btnToggle.innerHTML = '&#x25B6; Start';
+    btnReset.disabled = true;
+    btnFs.disabled = true;
+  }}
 
-                            function sph_njs_stop() {{
-                                document.querySelector("#sph_njs_container_{id}").nostalgist.exit({{ removeCanvas: false }});
-                                document.querySelector("#sph_njs_container_{id}").style.display = "none";
-                                document.querySelector("#sph_njs_btn_start_{id}").style.display = "";
-                                document.querySelector("#sph_njs_overlay_{id}").style.visibility = "visible";
-                                console.log("NostalgistJS exited.");
-                            }}
+  btnToggle.addEventListener('click', function () {{
+    if (!running) {{ onStart(); }} else {{ onStop(); }}
+  }});
 
-                            function sph_njs_reset() {{
-                                document.querySelector("#sph_njs_container_{id}").nostalgist.restart();
-                                
-                            }}
+  btnReset.addEventListener('click', function () {{
+    if (nostalgist) nostalgist.restart();
+  }});
 
-                            function sph_njs_fullscreen() {{
-                                let elem = document.querySelector(".sph_njs_canvas_{id}");
-                                if (!document.fullscreenElement) {{
-                                    elem.requestFullscreen().then(() => {{
-                                        console.log('Fullscreen mode started.');
-                                    }}, (err) => {{
-                                        console.log(`Error attempting to enable fullscreen mode: ${{err.message}} (${{err.name}})`);
-                                    }});
-                                }} else {{
-                                    document.exitFullscreen();
-                                }}
-                            }}
+  btnFs.addEventListener('click', function () {{
+    if (!canvas) return;
+    if (document.fullscreenElement) {{
+      document.exitFullscreen();
+    }} else {{
+      if (canvas.requestFullscreen)            canvas.requestFullscreen();
+      else if (canvas.webkitRequestFullscreen) canvas.webkitRequestFullscreen();
+    }}
+  }});
 
-                            document.querySelector("#sph_njs_btn_start_{id}").onclick = sph_njs_launch;
-                            document.querySelector("#sph_njs_btn_stop_{id}").onclick = sph_njs_stop;
-                            document.querySelector("#sph_njs_btn_reset_{id}").onclick = sph_njs_reset;
-                            document.querySelector("#sph_njs_btn_fullscreen_{id}").onclick = sph_njs_fullscreen;
-                            document.querySelector(".sph_njs_canvas_{id}").addEventListener("fullscreenchange", (event) => {{
-                                if(!document.fullscreenElement)
-                                {{
-                                    // When leaving fullscreen, restore original canvas size
-                                    let nostalgist = document.querySelector("#sph_njs_container_{id}").nostalgist;
-                                    let canvas = document.querySelector(".sph_njs_canvas_{id}");
-                                    nostalgist.resize({{ 
-                                        width: canvas.originalWidth,
-                                        height: canvas.originalHeight
-                                    }});
-                                    console.log("Left fullscreen, resized to "+canvas.originalWidth+"x"+canvas.originalHeight);
-                                }}
-                                else
-                                    console.log("Entered fullscreen, resizing happens automatically.");
-                            }});
-                        </script>
-
-                        """)
-        
+  document.addEventListener('fullscreenchange', function () {{
+    if (!document.fullscreenElement && nostalgist && canvas.originalWidth) {{
+      nostalgist.resize({{ width: canvas.originalWidth, height: canvas.originalHeight }});
+    }}
+  }});
+}})();
+</script>
+""")
 
     @staticmethod
     def depart(self, _):
@@ -180,10 +160,13 @@ class NostalgistJSNode(nodes.General, nodes.Element):
 
 
 class NostalgistJSDirective(SphinxDirective):
-    
+
     option_spec = {
-        'rom_url': str,
-        'core_id': str 
+        'rom_url':      str,
+        'core_id':      str,
+        'aspect-ratio': directives.unchanged,
+        'caption':      directives.unchanged,
+        'omit-attribution': directives.flag,
     }
 
     has_content = True
@@ -191,57 +174,47 @@ class NostalgistJSDirective(SphinxDirective):
     def run(self):
         content = '\n'.join(self.content or [])
         content = content.strip()
-        print("CONTENT IS "+repr(content))
         conf = json.loads(content) if content else {}
 
         unique_id = ''.join(random.choice('0123456789ABCDEF') for _ in range(8))
         opts = {
-            'rom': self.options.get("rom_url"),
+            'rom':  self.options.get("rom_url"),
             'core': self.options.get("core_id"),
-            'element': '.sph_njs_canvas_'+unique_id,  # we use class because the js lib changes the element's id for some cursed reason
             'respondToGlobalEvents': False,
         }
         opts.update(conf.get('nostalgist_options', {}))
 
         node = NostalgistJSNode()
-        node['unique_id'] = unique_id
-        node['base_opts'] = opts
-        node['omit_attribution'] = conf.get('omit_attribution', False)
+        node['unique_id']               = unique_id
+        node['base_opts']               = opts
+        node['aspect_ratio']            = self.options.get('aspect-ratio', conf.get('aspect_ratio', '4/3'))
+        node['caption']                 = self.options.get('caption', conf.get('caption', ''))
+        node['omit_attribution']        = 'omit-attribution' in self.options or conf.get('omit_attribution', False)
         node['extra_nostalgist_options'] = conf.get('extra_nostalgist_options', '')
-        node['before_launch_preamble'] = conf.get('before_launch_preamble', '')
-        node['before_launch_epilogue'] = conf.get('before_launch_epilogue', '')
-        node['on_launch_preamble'] = conf.get('on_launch_preamble', '')
-        node['on_launch_epilogue'] = conf.get('on_launch_epilogue', '')
+        node['before_launch_preamble']  = conf.get('before_launch_preamble', '')
+        node['before_launch_epilogue']  = conf.get('before_launch_epilogue', '')
+        node['on_launch_preamble']      = conf.get('on_launch_preamble', '')
+        node['on_launch_epilogue']      = conf.get('on_launch_epilogue', '')
 
         return [node]
 
 
-def on_html_page_context(app:Sphinx, pagename:str, templatename:str, context,
-                         doctree:nodes.document) -> None:
-    """Called when the HTML builder has created a context dictionary to render a template with.
-
-    We may add the necessary JS if NostalgistJS is used in the page.
-
-    :param sphinx.application.Sphinx app: Sphinx application object.
-    :param str pagename: Name of the page being rendered (without .html or any file extension).
-    :param str templatename: Page name with .html.
-    :param dict context: Jinja2 HTML context.
-    :param docutils.nodes.document doctree: Tree of docutils nodes.
-    """
-    # Only embed comments for documents
+def on_html_page_context(app: Sphinx, pagename: str, templatename: str, context,
+                         doctree: nodes.document) -> None:
     if not doctree:
         return
-    # We supports embed mulitple comments box in same document
     for node in doctree.traverse(NostalgistJSNode):
-        kwargs = {
-        }
-        # TODO setup kwargs according to config IF script needs it
         js_url = app.config.nostalgistjs_script_url
-        app.add_js_file(js_url, **kwargs)
-        logger.warning("Using NostalgistJS from "+js_url)
+        app.add_js_file(js_url)
+        logger.info("Using NostalgistJS from " + js_url)
+        break  # only need to add the script once per page
+
 
 def UnsupportedVisit(self, node):
-    node.replace_self(nodes.Text("The emulator is unsupported on this format. Please visit the HTML version for full functionality."))
+    node.replace_self(nodes.Text(
+        "The emulator is unsupported in this output format. "
+        "Please visit the HTML version for full functionality."
+    ))
 
 def UnsupportedDepart(self, node):
     pass
@@ -249,10 +222,11 @@ def UnsupportedDepart(self, node):
 def setup(app):
     for cfg in CONFIG_ITEMS:
         app.add_config_value(cfg, None, '')
-    app.add_node(NostalgistJSNode, html=(NostalgistJSNode.visit, NostalgistJSNode.depart),
-                                   text=(UnsupportedVisit, UnsupportedDepart),
-                                   latex=(UnsupportedVisit, UnsupportedDepart),
-                                   gemini=(UnsupportedVisit, UnsupportedDepart))
+    app.add_node(NostalgistJSNode,
+                 html=(NostalgistJSNode.visit, NostalgistJSNode.depart),
+                 text=(UnsupportedVisit, UnsupportedDepart),
+                 latex=(UnsupportedVisit, UnsupportedDepart),
+                 gemini=(UnsupportedVisit, UnsupportedDepart))
     app.add_directive('nostalgistjs', NostalgistJSDirective)
     app.connect('html-page-context', on_html_page_context)
 
