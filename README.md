@@ -61,7 +61,16 @@ If the extension was successfully installed, you can include an emulator in a do
     ```
 
 This will embed an emulator that loads the given ROM with the respective emulation core.
-If `rom_url` is not an URL, and instead, just a plain filename, NostalgistJS will try to load the ROM from [retrobrews](https://retrobrews.github.io/), as of the latest version. This uses the file extesnsion in an attempt to determine the target system automatically. The core is not important in this case.
+If `rom_url` is not an URL, and instead, just a plain filename, NostalgistJS will try to load the ROM from [retrobrews](https://retrobrews.github.io/), as of the latest version. This uses the file extension in an attempt to determine the target system automatically. The core is not important in this case.
+
+To use a local ROM file instead, use `:rom_file:` with a path relative to the current document:
+
+    ```{nostalgistjs}
+        :rom_file: roms/mygame.bin
+        :core_id: genesis_plus_gx
+    ```
+
+Sphinx will copy the file to the output directory automatically and the correct URL will be resolved at build time.
 
 Please consult the [launch(...) API](https://nostalgist.js.org/apis/launch/) of NostalgistJS to understand these arguments, and the available cores. As for the core to use, as a general rule:
 
@@ -101,19 +110,31 @@ It can get a bit ugly, though:
                     "input_auto_mouse_grab": true
                 }
             },
-            "before_launch_preamble": "let efs = nostalgist.getEmscriptenFS(); efs.mkdirTree('/home/web_user/retroarch/userdata/config/remaps/Genesis Plus GX'); efs.writeFile('/home/web_user/retroarch/userdata/config/remaps/Genesis Plus GX/rom.rmp',  'input_libretro_device_p1 = \"1\"\\ninput_libretro_device_p2 = \"2\"');"
+            "before_launch_epilogue": "let efs = nostalgist.getEmscriptenFS(); efs.mkdirTree('/home/web_user/retroarch/userdata/config/remaps/Genesis Plus GX'); efs.writeFile('/home/web_user/retroarch/userdata/config/remaps/Genesis Plus GX/rom.rmp',  'input_libretro_device_p1 = \"1\"\\ninput_libretro_device_p2 = \"2\"');"
         }
     ```
 
 ## Directive options
+
+### `rom_url`
+
+A URL or plain filename for the ROM to load. If a plain filename is given (no protocol), NostalgistJS will attempt to load it from [retrobrews](https://retrobrews.github.io/). Mutually exclusive with `rom_file`.
+
+### `rom_file`
+
+A path to a local ROM file, relative to the current document. Sphinx will copy the file into the build output using its download file mechanism (`_downloads/<hash>/<filename>`), and the correct absolute URL is resolved automatically at build time. Mutually exclusive with `rom_url`.
+
+### `core_id`
+
+The RetroArch core to use for emulation. See the table above for common values.
 
 ### `nostalgist_options`
 
 These are the options passed straight to NostalgistJS for configuring the emulator. 
 Consult the [NostalgistJS documentation](https://nostalgist.js.org/apis/launch/) for more info. 
 
-The options `rom` and `core` are filled in from the directive's `rom_url` and `core_id` parameters, and don't need to be specified again. 
-Also, `respondToGlobalEvents` is set to false by default, but this can be overriden.
+The options `rom` and `core` are filled in from the directive's `rom_url`/`rom_file` and `core_id` parameters, and don't need to be specified again. 
+Also, `respondToGlobalEvents` is set to false by default, but this can be overridden.
 
 Note that there's no need to specify the `element` option, this is handled automatically by the plugin.
 Doing so will break the UI controls.
@@ -134,19 +155,21 @@ Defaults to an empty string.
 
 #### `before_launch_preamble`
 
-A piece of JS code to be executed before the emulator starts, and before any UI setup code runs.
+JS code executed before `Nostalgist.launch()` is called. The `nostalgist` instance is **not** available here.
+Use this for setting up options or state that doesn't require the emulator instance.
 
 #### `before_launch_epilogue`
 
-A piece of JS code to be executed before the emulator starts, but after all UI setup code runs.
+JS code executed inside the `beforeLaunch` callback, after the `nostalgist` instance is assigned.
+The `nostalgist` instance **is** available here. Use this for Emscripten FS setup, input remaps, and similar pre-launch configuration that requires the instance (e.g. `nostalgist.getEmscriptenFS()`).
 
 #### `on_launch_preamble`
 
-A piece of JS code to be executed after the emulator starts, but before any UI setup code runs.
+JS code executed after the emulator starts (inside `.then()`), before UI state is updated.
 
 #### `on_launch_epilogue`
 
-A piece of JS code to be executed after the emulator starts, and after all UI setup code runs.
+JS code executed after the emulator starts (inside `.then()`), after UI state is updated.
 
 ## Troubleshooting
 

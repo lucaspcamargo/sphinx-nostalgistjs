@@ -6,7 +6,10 @@ from sphinx.util.docutils import SphinxDirective
 
 import json
 import logging
+import posixpath
 import random
+import urllib.parse
+from pathlib import Path
 
 __title__= 'sphinx-nostalgistjs'
 __license__ = 'GPLv3',
@@ -29,6 +32,14 @@ class NostalgistJSNode(nodes.General, nodes.Element):
         aspect_ratio  = node.get('aspect_ratio', '4/3')
         caption       = node.get('caption', '')
         omit_attr     = node.get('omit_attribution', False)
+
+        if node.get('local_rom_dest'):
+            rom_url = posixpath.join(
+                self.builder.dlpath,
+                urllib.parse.quote(str(node['local_rom_dest']))
+            )
+            node['base_opts']['rom'] = rom_url
+            node['rom_is_local'] = True
 
         options_extender = ""
         if node.get('extra_nostalgist_options'):
@@ -104,6 +115,7 @@ class NostalgistJSNode(nodes.General, nodes.Element):
       {node.get('before_launch_epilogue', '')}
     }};
 
+    {'if (opts.rom) opts.rom = new URL(opts.rom, window.location.href).href;' if node.get('rom_is_local') else ''}
     Nostalgist.launch(opts).then(function () {{
       {node.get('on_launch_preamble', '')}
       overlay.style.visibility = 'hidden';
@@ -163,6 +175,7 @@ class NostalgistJSDirective(SphinxDirective):
 
     option_spec = {
         'rom_url':      str,
+        'rom_file':     directives.path,
         'core_id':      str,
         'aspect-ratio': directives.unchanged,
         'caption':      directives.unchanged,
@@ -184,9 +197,18 @@ class NostalgistJSDirective(SphinxDirective):
         }
         opts.update(conf.get('nostalgist_options', {}))
 
+        local_rom_dest = None
+        rom_file = self.options.get("rom_file")
+        if rom_file:
+            doc_dir = Path(self.env.doc2path(self.env.docname)).parent
+            abs_rom = (doc_dir / rom_file).resolve()
+            local_rom_dest = self.env.dlfiles.add_file(self.env.docname, abs_rom)
+
         node = NostalgistJSNode()
         node['unique_id']               = unique_id
         node['base_opts']               = opts
+        node['local_rom_dest']          = local_rom_dest
+        node['rom_is_local']            = False
         node['aspect_ratio']            = self.options.get('aspect-ratio', conf.get('aspect_ratio', '4/3'))
         node['caption']                 = self.options.get('caption', conf.get('caption', ''))
         node['omit_attribution']        = 'omit-attribution' in self.options or conf.get('omit_attribution', False)
