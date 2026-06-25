@@ -29,7 +29,6 @@ Add this extension to your Sphinx `conf.py`, like so:
 ``` python
 extensions = [
     "sphinx_nostalgistjs",
-    ⋯
 ]
 ```
 
